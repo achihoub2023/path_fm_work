@@ -21,7 +21,7 @@ from dinov3.loss import DINOLoss, GramLoss, KoLeoLoss, KoLeoLossDistributed, iBO
 from dinov3.models import build_model_from_cfg
 from dinov3.train.cosine_lr_scheduler import linear_warmup_cosine_decay
 from dinov3.train.param_groups import fuse_params_groups, get_params_groups_with_decay_fsdp
-from dinov3.utils import count_parameters
+from dinov3.utils import count_parameters, maybe_apply_mup_shapes
 
 logger = logging.getLogger("dinov3")
 
@@ -79,6 +79,18 @@ class SSLMetaArch(nn.Module):
         )
         student_model_dict["dino_head"] = dino_head_class()
         teacher_model_dict["dino_head"] = dino_head_class()
+        maybe_apply_mup_shapes(
+            cfg,
+            student_model_dict["dino_head"],
+            dino_head_class,
+            tag="student_dino_head",
+        )
+        maybe_apply_mup_shapes(
+            cfg,
+            teacher_model_dict["dino_head"],
+            dino_head_class,
+            tag="teacher_dino_head",
+        )
         self.dino_loss = DINOLoss(self.dino_out_dim)
 
         logger.info("OPTIONS -- KOLEO")
@@ -123,6 +135,18 @@ class SSLMetaArch(nn.Module):
         )
         student_model_dict["ibot_head"] = ibot_head_class()
         teacher_model_dict["ibot_head"] = ibot_head_class()
+        maybe_apply_mup_shapes(
+            cfg,
+            student_model_dict["ibot_head"],
+            ibot_head_class,
+            tag="student_ibot_head",
+        )
+        maybe_apply_mup_shapes(
+            cfg,
+            teacher_model_dict["ibot_head"],
+            ibot_head_class,
+            tag="teacher_ibot_head",
+        )
         self.ibot_patch_loss = iBOTPatchLoss(cfg.ibot.head_n_prototypes)
 
         # Build student and teacher models

@@ -4,6 +4,7 @@
 # the terms of the DINOv3 License Agreement.
 
 from .dtype import as_torch_dtype
+from .mup import apply_mup_shapes, is_mup_enabled, maybe_apply_mup_shapes
 from .utils import (
     cat_keep_shapes,
     count_parameters,

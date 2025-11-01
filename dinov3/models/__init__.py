@@ -12,6 +12,7 @@ import torch
 import torch.nn as nn
 
 from dinov3.layers.fp8_linear import convert_linears_to_fp8
+from dinov3.utils.mup import maybe_apply_mup_shapes
 
 from . import vision_transformer as vits
 
@@ -71,20 +72,45 @@ def build_model(args, only_teacher=False, img_size=224, device=None):
 
 
 def build_model_from_cfg(cfg, only_teacher: bool = False):
+    img_size = (
+        cfg.crops.global_crops_size
+        if isinstance(cfg.crops.global_crops_size, int)
+        else max(cfg.crops.global_crops_size)
+    )
     outputs = build_model(
         cfg.student,
         only_teacher=only_teacher,
-        img_size=cfg.crops.global_crops_size
-        if isinstance(cfg.crops.global_crops_size, int)
-        else max(cfg.crops.global_crops_size),
+        img_size=img_size,
         device="meta",
     )
+
+    def backbone_base_factory():
+        return build_model(cfg.student, only_teacher=True, img_size=img_size, device="meta")[0]
+
     if only_teacher:
         teacher, embed_dim = outputs
+        maybe_apply_mup_shapes(
+            cfg,
+            teacher,
+            backbone_base_factory,
+            tag="teacher_backbone",
+        )
         return teacher, embed_dim
-    else:
-        student, teacher, embed_dim = outputs
-        return student, teacher, embed_dim
+
+    student, teacher, embed_dim = outputs
+    maybe_apply_mup_shapes(
+        cfg,
+        student,
+        backbone_base_factory,
+        tag="student_backbone",
+    )
+    maybe_apply_mup_shapes(
+        cfg,
+        teacher,
+        backbone_base_factory,
+        tag="teacher_backbone",
+    )
+    return student, teacher, embed_dim
 
 
 def build_model_for_eval(

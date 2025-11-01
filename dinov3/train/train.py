@@ -96,7 +96,19 @@ For python-based LazyConfig, use "path.key=value".
 
 
 def build_optimizer(cfg, params_groups):
-    return torch.optim.AdamW(params_groups, betas=(cfg.optim.adamw_beta1, cfg.optim.adamw_beta2))
+    betas = (cfg.optim.adamw_beta1, cfg.optim.adamw_beta2)
+    if getattr(cfg.optim, "use_mup", False):
+        try:
+            from mup import MuAdamW  # type: ignore[import]
+        except ImportError as exc:  # pragma: no cover - defensive error path
+            raise ImportError(
+                "μP support requested but the `mup` package is not available."
+                " Install it with `pip install mup` and try again."
+            ) from exc
+        logger.info("Using μP MuAdamW optimizer")
+        return MuAdamW(params_groups, betas=betas)
+
+    return torch.optim.AdamW(params_groups, betas=betas)
 
 
 def build_schedulers(cfg):

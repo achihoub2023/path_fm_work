@@ -1,4 +1,5 @@
 ftfy
+mup
 omegaconf
 regex
 scikit-learn

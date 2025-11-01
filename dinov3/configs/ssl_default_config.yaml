@@ -129,6 +129,7 @@ hrft:  # non-hrft'd student
 optim:
   epochs: 100
   optimizer: adamw
+  use_mup: false
   weight_decay: 0.04
   weight_decay_end: 0.4
   lr: 0.001
